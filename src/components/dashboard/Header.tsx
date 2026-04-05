@@ -11,11 +11,11 @@ interface HeaderProps {
 }
 
 const Header = ({ isAlert, onTriggerAlert, onClearAlert, connectionStatus = "disconnected", isCalibrating = false }: HeaderProps) => {
-  const statusConfig = {
+  const statusConfig: Record<string, { icon: typeof Wifi; text: string; color: string }> = {
     connected: { icon: Wifi, text: "BACKEND CONNECTED", color: "text-safe" },
     connecting: { icon: Wifi, text: "CONNECTING...", color: "text-warning" },
-    disconnected: { icon: WifiOff, text: "OFFLINE MODE", color: "text-muted-foreground" },
-    error: { icon: WifiOff, text: "CONNECTION ERROR", color: "text-destructive" },
+    disconnected: { icon: Wifi, text: "STANDALONE MODE", color: "text-muted-foreground" },
+    error: { icon: WifiOff, text: "BACKEND UNREACHABLE", color: "text-warning" },
   };
   const status = statusConfig[connectionStatus];
   const StatusIcon = status.icon;

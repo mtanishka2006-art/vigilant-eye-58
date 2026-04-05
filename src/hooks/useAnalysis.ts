@@ -71,7 +71,7 @@ export function useAnalysis() {
     faceDetected: false,
     frameCount: 0,
     connectionStatus: "disconnected",
-    isCalibrating: true,
+    isCalibrating: false,
   });
 
   const addLog = useCallback((type: "safe" | "threat" | "warning", source: string, message: string, confidence: number) => {
