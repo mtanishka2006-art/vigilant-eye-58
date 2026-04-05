@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/dashboard/Header";
 import TrustGauge from "@/components/dashboard/TrustGauge";
@@ -7,14 +7,88 @@ import VideoPreview from "@/components/dashboard/VideoPreview";
 import DetectionFeed from "@/components/dashboard/DetectionFeed";
 import SystemStatus from "@/components/dashboard/SystemStatus";
 import AlertOverlay from "@/components/dashboard/AlertOverlay";
+import { useWebcam } from "@/hooks/useWebcam";
+import { useAnalysis } from "@/hooks/useAnalysis";
+import { useSlidingWindow } from "@/hooks/useSlidingWindow";
+
+const CAPTURE_INTERVAL = 500; // ms
 
 const Dashboard = () => {
-  const [isAlert, setIsAlert] = useState(false);
+  const { videoRef, canvasRef, isActive: webcamActive, error: webcamError, startWebcam, stopWebcam, captureFrame } = useWebcam();
+  const { state, connect, disconnect, sendFrame, simulateThreat, clearAlert } = useAnalysis();
+  const { isDeepfake, pushFrame, reset: resetWindow } = useSlidingWindow();
+  const captureTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const triggerAlert = useCallback(() => setIsAlert(true), []);
-  const clearAlert = useCallback(() => setIsAlert(false), []);
+  const isAlert = state.redAlert || isDeepfake;
 
-  const trustScore = isAlert ? 23 : 87;
+  // Start webcam + connect to backend on mount
+  useEffect(() => {
+    startWebcam();
+    connect();
+    return () => {
+      stopWebcam();
+      disconnect();
+    };
+  }, []);
+
+  // Frame capture loop
+  useEffect(() => {
+    if (!webcamActive) return;
+
+    captureTimerRef.current = setInterval(() => {
+      const frame = captureFrame();
+      if (frame) {
+        sendFrame(frame);
+      }
+    }, CAPTURE_INTERVAL);
+
+    return () => {
+      if (captureTimerRef.current) clearInterval(captureTimerRef.current);
+    };
+  }, [webcamActive, captureFrame, sendFrame]);
+
+  // Push frames into sliding window when scores update
+  useEffect(() => {
+    if (state.trust > 0) {
+      pushFrame({
+        trust: state.trust,
+        rppg: state.rppg,
+        mesh: state.mesh,
+        avsync: state.avsync,
+      });
+    }
+  }, [state.trust, state.rppg, state.mesh, state.avsync, pushFrame]);
+
+  // Play alert sound when deepfake detected via sliding window
+  useEffect(() => {
+    if (isDeepfake && !state.redAlert) {
+      // Sliding window triggered
+      try {
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch {}
+    }
+  }, [isDeepfake]);
+
+  const handleTriggerAlert = useCallback(() => {
+    simulateThreat();
+  }, [simulateThreat]);
+
+  const handleClearAlert = useCallback(() => {
+    clearAlert();
+    resetWindow();
+  }, [clearAlert, resetWindow]);
+
+  const trustScore = state.trust;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -32,7 +106,13 @@ const Dashboard = () => {
         }}
       />
 
-      <Header isAlert={isAlert} onTriggerAlert={triggerAlert} onClearAlert={clearAlert} />
+      <Header
+        isAlert={isAlert}
+        onTriggerAlert={handleTriggerAlert}
+        onClearAlert={handleClearAlert}
+        connectionStatus={state.connectionStatus}
+        isCalibrating={state.isCalibrating}
+      />
 
       <main className="p-6 max-w-[1600px] mx-auto">
         {/* Bento grid */}
@@ -44,7 +124,17 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <VideoPreview isAlert={isAlert} />
+            <VideoPreview
+              isAlert={isAlert}
+              videoRef={videoRef}
+              canvasRef={canvasRef}
+              webcamActive={webcamActive}
+              webcamError={webcamError}
+              landmarks={state.landmarks}
+              faceDetected={state.faceDetected}
+              frameCount={state.frameCount}
+              isCalibrating={state.isCalibrating}
+            />
           </motion.div>
 
           {/* Trust Gauge — spans 4 cols */}
@@ -66,9 +156,9 @@ const Dashboard = () => {
           >
             <BioSignalCard
               type="rppg"
-              value={isAlert ? 0.8 : 8.2}
-              status={isAlert ? "critical" : "nominal"}
-              detail={isAlert ? "Non-periodic signal — synthetic source likely" : "Stable BVP — 72 BPM detected"}
+              value={state.rppg}
+              status={state.rppg < 2.0 ? "critical" : state.rppg < 5.0 ? "warning" : "nominal"}
+              detail={state.rppg < 2.0 ? "Non-periodic signal — synthetic source likely" : `Stable BVP — ${state.bpm} BPM detected`}
             />
           </motion.div>
 
@@ -80,9 +170,9 @@ const Dashboard = () => {
           >
             <BioSignalCard
               type="mesh"
-              value={isAlert ? 6.4 : 1.2}
-              status={isAlert ? "critical" : "nominal"}
-              detail={isAlert ? "Landmark ghosting on chin region" : "478 landmarks temporally coherent"}
+              value={state.mesh}
+              status={state.mesh > 3.0 ? "critical" : state.mesh > 2.0 ? "warning" : "nominal"}
+              detail={state.mesh > 3.0 ? `Landmark ghosting — σ ${state.mesh}px` : "478 landmarks temporally coherent"}
             />
           </motion.div>
 
@@ -94,9 +184,9 @@ const Dashboard = () => {
           >
             <BioSignalCard
               type="audio"
-              value={isAlert ? 0.41 : 0.91}
-              status={isAlert ? "warning" : "nominal"}
-              detail={isAlert ? "Bilabial desync — 180ms lag" : "Phoneme-lip correlation nominal"}
+              value={state.avsync}
+              status={state.avsync < 0.6 ? "critical" : state.avsync < 0.8 ? "warning" : "nominal"}
+              detail={state.avsync < 0.6 ? `Bilabial desync — corr ${state.avsync}` : "Phoneme-lip correlation nominal"}
             />
           </motion.div>
 
@@ -107,7 +197,7 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <DetectionFeed />
+            <DetectionFeed logs={state.logs} />
           </motion.div>
 
           {/* System Status — 4 cols */}
@@ -117,13 +207,16 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <SystemStatus />
+            <SystemStatus telemetry={state.telemetry} connectionStatus={state.connectionStatus} />
           </motion.div>
         </div>
       </main>
 
+      {/* Hidden canvas for frame capture */}
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* Full-screen alert overlay */}
-      <AlertOverlay isActive={isAlert} onDismiss={clearAlert} />
+      <AlertOverlay isActive={isAlert} onDismiss={handleClearAlert} rppg={state.rppg} mesh={state.mesh} avsync={state.avsync} />
     </div>
   );
 };

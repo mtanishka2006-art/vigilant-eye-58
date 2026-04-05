@@ -1,13 +1,25 @@
 import { motion } from "framer-motion";
-import { Shield, Activity } from "lucide-react";
+import { Shield, Activity, Wifi, WifiOff } from "lucide-react";
+import type { ConnectionStatus } from "@/lib/api";
 
 interface HeaderProps {
   isAlert: boolean;
   onTriggerAlert: () => void;
   onClearAlert: () => void;
+  connectionStatus: ConnectionStatus;
+  isCalibrating: boolean;
 }
 
-const Header = ({ isAlert, onTriggerAlert, onClearAlert }: HeaderProps) => {
+const Header = ({ isAlert, onTriggerAlert, onClearAlert, connectionStatus, isCalibrating }: HeaderProps) => {
+  const statusConfig = {
+    connected: { icon: Wifi, text: "BACKEND CONNECTED", color: "text-safe" },
+    connecting: { icon: Wifi, text: "CONNECTING...", color: "text-warning" },
+    disconnected: { icon: WifiOff, text: "OFFLINE MODE", color: "text-muted-foreground" },
+    error: { icon: WifiOff, text: "CONNECTION ERROR", color: "text-destructive" },
+  };
+  const status = statusConfig[connectionStatus];
+  const StatusIcon = status.icon;
+
   return (
     <header className="glass-strong border-b border-border/50 px-6 py-3">
       <div className="flex items-center justify-between">
@@ -36,12 +48,25 @@ const Header = ({ isAlert, onTriggerAlert, onClearAlert }: HeaderProps) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-secondary/30">
-            <Activity className="w-3 h-3 text-safe" />
-            <span className="font-mono text-[10px] text-muted-foreground">
-              SESSION: 00:14:32
+          {/* Connection status */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded bg-secondary/30`}>
+            <StatusIcon className={`w-3 h-3 ${status.color}`} />
+            <span className={`font-mono text-[10px] ${status.color}`}>
+              {status.text}
             </span>
           </div>
+
+          {/* Calibrating indicator */}
+          {isCalibrating && (
+            <motion.div
+              className="flex items-center gap-2 px-3 py-1.5 rounded bg-warning/10 border border-warning/20"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              <Activity className="w-3 h-3 text-warning" />
+              <span className="font-mono text-[10px] text-warning">CALIBRATING</span>
+            </motion.div>
+          )}
 
           {/* Demo controls */}
           <div className="flex gap-2">

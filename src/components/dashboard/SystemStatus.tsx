@@ -1,14 +1,23 @@
 import { motion } from "framer-motion";
-import { Cpu, Wifi, HardDrive, Zap } from "lucide-react";
+import { Cpu, Wifi, HardDrive, Zap, WifiOff } from "lucide-react";
+import type { TelemetryData } from "@/hooks/useAnalysis";
+import type { ConnectionStatus } from "@/lib/api";
 
-const metrics = [
-  { icon: Cpu, label: "Inference", value: "12ms", status: "nominal" as const },
-  { icon: Wifi, label: "Latency", value: "48ms", status: "nominal" as const },
-  { icon: HardDrive, label: "Buffer", value: "128 frames", status: "nominal" as const },
-  { icon: Zap, label: "FPS", value: "30", status: "nominal" as const },
-];
+interface SystemStatusProps {
+  telemetry: TelemetryData;
+  connectionStatus: ConnectionStatus;
+}
 
-const SystemStatus = () => {
+const SystemStatus = ({ telemetry, connectionStatus }: SystemStatusProps) => {
+  const isConnected = connectionStatus === "connected";
+
+  const metrics = [
+    { icon: Cpu, label: "Inference", value: telemetry.inference > 0 ? `${telemetry.inference}ms` : "—", status: "nominal" as const },
+    { icon: isConnected ? Wifi : WifiOff, label: "Latency", value: telemetry.latency > 0 ? `${telemetry.latency}ms` : "—", status: "nominal" as const },
+    { icon: HardDrive, label: "Buffer", value: telemetry.buffer > 0 ? `${telemetry.buffer} frames` : "—", status: "nominal" as const },
+    { icon: Zap, label: "FPS", value: telemetry.fps > 0 ? `${telemetry.fps.toFixed(0)}` : "—", status: "nominal" as const },
+  ];
+
   return (
     <div className="glass rounded-lg p-4">
       <h3 className="font-mono text-xs tracking-[0.3em] uppercase text-muted-foreground mb-4">
