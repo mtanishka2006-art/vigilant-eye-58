@@ -4,9 +4,12 @@ import { ShieldAlert, X } from "lucide-react";
 interface AlertOverlayProps {
   isActive: boolean;
   onDismiss: () => void;
+  rppg: number;
+  mesh: number;
+  avsync: number;
 }
 
-const AlertOverlay = ({ isActive, onDismiss }: AlertOverlayProps) => {
+const AlertOverlay = ({ isActive, onDismiss, rppg, mesh, avsync }: AlertOverlayProps) => {
   return (
     <AnimatePresence>
       {isActive && (
@@ -90,15 +93,15 @@ const AlertOverlay = ({ isActive, onDismiss }: AlertOverlayProps) => {
               <div className="w-full space-y-2 text-left">
                 <div className="flex justify-between items-center p-2 rounded bg-destructive/10">
                   <span className="font-mono text-[10px] text-muted-foreground">rPPG SNR</span>
-                  <span className="font-mono text-xs text-destructive font-semibold">0.8 dB — NON-PERIODIC</span>
+                  <span className="font-mono text-xs text-destructive font-semibold">{rppg.toFixed(1)} dB — {rppg < 2.0 ? "NON-PERIODIC" : "LOW"}</span>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded bg-destructive/10">
                   <span className="font-mono text-[10px] text-muted-foreground">Mesh Warp</span>
-                  <span className="font-mono text-xs text-destructive font-semibold">σ 6.4px — GHOSTING</span>
+                  <span className="font-mono text-xs text-destructive font-semibold">σ {mesh.toFixed(1)}px — {mesh > 3.0 ? "GHOSTING" : "ANOMALY"}</span>
                 </div>
                 <div className="flex justify-between items-center p-2 rounded bg-warning/10">
                   <span className="font-mono text-[10px] text-muted-foreground">AV Sync</span>
-                  <span className="font-mono text-xs text-warning font-semibold">0.41 corr — LAG 180ms</span>
+                  <span className="font-mono text-xs text-warning font-semibold">{avsync.toFixed(2)} corr — {avsync < 0.6 ? "DESYNC" : "LOW"}</span>
                 </div>
               </div>
 

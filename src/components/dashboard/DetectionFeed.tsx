@@ -1,24 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, ShieldCheck, Clock } from "lucide-react";
+import type { DetectionLog } from "@/hooks/useAnalysis";
 
-interface DetectionEvent {
-  id: string;
-  timestamp: string;
-  type: "safe" | "threat" | "warning";
-  source: string;
-  message: string;
-  confidence: number;
+interface DetectionFeedProps {
+  logs: DetectionLog[];
 }
-
-const mockEvents: DetectionEvent[] = [
-  { id: "1", timestamp: "14:32:07.291", type: "safe", source: "rPPG", message: "Periodic BVP detected — SNR 8.2 dB", confidence: 94 },
-  { id: "2", timestamp: "14:32:06.844", type: "threat", source: "MESH", message: "Temporal warp anomaly on landmarks 33-41", confidence: 87 },
-  { id: "3", timestamp: "14:32:05.112", type: "safe", source: "AV-SYNC", message: "Lip closure corr 0.91 on bilabial phoneme", confidence: 91 },
-  { id: "4", timestamp: "14:32:04.667", type: "warning", source: "rPPG", message: "Low SNR region — recalibrating ROI", confidence: 62 },
-  { id: "5", timestamp: "14:32:03.201", type: "safe", source: "MESH", message: "478 landmarks stable — σ 1.2px", confidence: 96 },
-  { id: "6", timestamp: "14:32:02.003", type: "threat", source: "AV-SYNC", message: "Lip-audio desync: 180ms lag on /b/ phoneme", confidence: 79 },
-  { id: "7", timestamp: "14:32:01.445", type: "safe", source: "rPPG", message: "Heart rate 72 BPM — consistent pulse", confidence: 98 },
-];
 
 const typeConfig = {
   safe: { icon: ShieldCheck, color: "text-safe", bg: "bg-safe/10", border: "border-safe/20" },
@@ -26,7 +12,16 @@ const typeConfig = {
   warning: { icon: Clock, color: "text-warning", bg: "bg-warning/10", border: "border-warning/20" },
 };
 
-const DetectionFeed = () => {
+// Default mock events when no logs yet
+const defaultEvents: DetectionLog[] = [
+  { id: "d1", timestamp: "14:32:07.291", type: "safe", source: "rPPG", message: "Periodic BVP detected — SNR 8.2 dB", confidence: 94 },
+  { id: "d2", timestamp: "14:32:06.844", type: "safe", source: "MESH", message: "478 landmarks stable — σ 1.2px", confidence: 96 },
+  { id: "d3", timestamp: "14:32:05.112", type: "safe", source: "AV-SYNC", message: "Lip closure corr 0.91 on bilabial phoneme", confidence: 91 },
+];
+
+const DetectionFeed = ({ logs }: DetectionFeedProps) => {
+  const events = logs.length > 0 ? logs : defaultEvents;
+
   return (
     <div className="glass rounded-lg p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -41,14 +36,14 @@ const DetectionFeed = () => {
 
       <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
         <AnimatePresence>
-          {mockEvents.map((event, i) => {
+          {events.map((event, i) => {
             const { icon: Icon, color, bg, border } = typeConfig[event.type];
             return (
               <motion.div
                 key={event.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
+                transition={{ delay: i * 0.05 }}
                 className={`flex items-start gap-2.5 p-2.5 rounded border ${border} ${bg}`}
               >
                 <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${color}`} />
