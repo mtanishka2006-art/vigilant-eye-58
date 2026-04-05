@@ -21,10 +21,13 @@ const Dashboard = () => {
 
   const isAlert = state.redAlert || isDeepfake;
 
-  // Start webcam + connect to backend on mount
+  // Start webcam on mount; only connect to backend if URL is configured
   useEffect(() => {
     startWebcam();
-    connect();
+    const backendUrl = import.meta.env.VITE_BACKEND_WS_URL;
+    if (backendUrl) {
+      connect();
+    }
     return () => {
       stopWebcam();
       disconnect();
