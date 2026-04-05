@@ -94,11 +94,12 @@ export class VigilantEyeSocket {
   }
 
   private scheduleReconnect() {
-    if (this.reconnectTimer) return;
+    if (this.reconnectTimer || this.maxReconnects <= 0) return;
+    this.maxReconnects--;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect();
-    }, 3000);
+    }, 5000);
   }
 
   sendFrame(base64Data: string, audio?: number[], forceScore = false) {
