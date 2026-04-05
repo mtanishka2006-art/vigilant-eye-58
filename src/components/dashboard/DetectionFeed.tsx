@@ -19,7 +19,7 @@ const defaultEvents: DetectionLog[] = [
   { id: "d3", timestamp: "14:32:05.112", type: "safe", source: "AV-SYNC", message: "Lip closure corr 0.91 on bilabial phoneme", confidence: 91 },
 ];
 
-const DetectionFeed = ({ logs }: DetectionFeedProps) => {
+const DetectionFeed = ({ logs = [] }: DetectionFeedProps) => {
   const events = logs.length > 0 ? logs : defaultEvents;
 
   return (

@@ -19,10 +19,10 @@ const VideoPreview = ({
   videoRef,
   webcamActive,
   webcamError,
-  landmarks,
-  faceDetected,
-  frameCount,
-  isCalibrating,
+  landmarks = [],
+  faceDetected = false,
+  frameCount = 0,
+  isCalibrating = false,
 }: VideoPreviewProps) => {
   // Fallback simulated mesh points when no backend landmarks
   const meshPoints = landmarks.length > 0

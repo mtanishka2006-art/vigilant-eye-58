@@ -8,7 +8,7 @@ interface SystemStatusProps {
   connectionStatus: ConnectionStatus;
 }
 
-const SystemStatus = ({ telemetry, connectionStatus }: SystemStatusProps) => {
+const SystemStatus = ({ telemetry = { latency: 0, fps: 0, buffer: 0, inference: 0 }, connectionStatus = "disconnected" }: SystemStatusProps) => {
   const isConnected = connectionStatus === "connected";
 
   const metrics = [
