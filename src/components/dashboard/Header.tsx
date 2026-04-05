@@ -10,7 +10,7 @@ interface HeaderProps {
   isCalibrating: boolean;
 }
 
-const Header = ({ isAlert, onTriggerAlert, onClearAlert, connectionStatus, isCalibrating }: HeaderProps) => {
+const Header = ({ isAlert, onTriggerAlert, onClearAlert, connectionStatus = "disconnected", isCalibrating = false }: HeaderProps) => {
   const statusConfig = {
     connected: { icon: Wifi, text: "BACKEND CONNECTED", color: "text-safe" },
     connecting: { icon: Wifi, text: "CONNECTING...", color: "text-warning" },

@@ -9,7 +9,7 @@ interface AlertOverlayProps {
   avsync: number;
 }
 
-const AlertOverlay = ({ isActive, onDismiss, rppg, mesh, avsync }: AlertOverlayProps) => {
+const AlertOverlay = ({ isActive, onDismiss, rppg = 0.8, mesh = 6.4, avsync = 0.41 }: AlertOverlayProps) => {
   return (
     <AnimatePresence>
       {isActive && (
