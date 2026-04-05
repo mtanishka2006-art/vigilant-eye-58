@@ -52,6 +52,7 @@ export class VigilantEyeSocket {
   private ws: WebSocket | null = null;
   private url: string;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private maxReconnects = 3;
   
   onMessage: ((data: BackendResponse) => void) | null = null;
   onStatusChange: ((status: ConnectionStatus) => void) | null = null;
